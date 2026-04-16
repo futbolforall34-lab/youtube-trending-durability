@@ -1,0 +1,231 @@
+================================================================
+DICCIONARIO DE VARIABLES — PROYECTO DE PORTAFOLIO
+================================================================
+
+NOMBRE DEL PROYECTO:
+Predicción de Engagement y Viralidad en Videos de YouTube
+
+DATASET ELEGIDO:
+YouTube Trending Video Dataset (Updated Daily)
+
+FUENTE:
+Kaggle — rsrishav
+https://www.kaggle.com/datasets/rsrishav/youtube-trending-video-dataset
+
+DESCRIPCIÓN GENERAL:
+Registro diario de los ~200 videos más trending de YouTube en 11 países
+(IN, US, GB, DE, CA, FR, RU, BR, MX, KR, JP). Cada fila representa
+un video que apareció en el ranking de trending en una fecha y región
+específica. Se actualiza diariamente. Licencia: CC0 Public Domain.
+
+UNIDAD DE ANÁLISIS:
+Un video en un día y región determinados. Un mismo video puede aparecer
+en múltiples filas si estuvo trending en varios días o regiones.
+
+NOTA SOBRE CATEGORÍAS:
+El campo category_id se decodifica usando archivos JSON separados,
+uno por cada región. Es necesario cruzar estos archivos para obtener
+el nombre legible de la categoría.
+
+================================================================
+DICCIONARIO DE VARIABLES
+================================================================
+
+Variable: video_id
+Descripción: Identificador único del video en YouTube (11 caracteres alfanuméricos).
+Tipo: Texto / ID
+Posibles valores: Ej. "dQw4w9WgXcQ"
+Observaciones: Útil para deduplicar y para construir la URL del video.
+               URL = https://www.youtube.com/watch?v={video_id}
+
+Variable: title
+Descripción: Título completo del video tal como aparece en YouTube.
+Tipo: Texto
+Posibles valores: Cadena de texto libre
+Observaciones: Clave para NLP. Permite análisis de sentimiento, longitud
+               del título, uso de mayúsculas, signos de exclamación/pregunta,
+               y topic modeling. Feature engineering muy rico.
+
+Variable: publishedAt
+Descripción: Fecha y hora en que el video fue publicado originalmente.
+Tipo: Fecha/Hora (timestamp ISO 8601)
+Posibles valores: Ej. "2024-03-15T14:30:00Z"
+Observaciones: Permite calcular cuántos días tardó el video en llegar
+               a trending (trending_date - publishedAt). Feature muy
+               valioso para el modelo predictivo.
+
+Variable: channelId
+Descripción: Identificador único del canal de YouTube que publicó el video.
+Tipo: Texto / ID
+Posibles valores: Ej. "UCxxxxxxxxxxxxxxxxxxxxxx"
+Observaciones: Permite agrupar por canal y calcular features como:
+               frecuencia de aparición en trending, historial del canal.
+
+Variable: channelTitle
+Descripción: Nombre del canal que publicó el video.
+Tipo: Texto
+Posibles valores: Cadena de texto
+Observaciones: Versión legible de channelId. Útil para análisis
+               por canal y visualizaciones.
+
+Variable: categoryId
+Descripción: Identificador numérico de la categoría del video según YouTube.
+Tipo: Numérica (entero)
+Posibles valores: Ej. 1=Film, 2=Autos, 10=Music, 17=Sports, 24=Entertainment,
+                  25=News, 28=Science&Tech (varía por región)
+Observaciones: Requiere cruzar con el archivo JSON de la región para
+               obtener el nombre de categoría. Variable categórica clave
+               para el modelo.
+
+Variable: trending_date
+Descripción: Fecha en que el video apareció en el ranking de trending.
+Tipo: Fecha (formato YYYYMMDD o YYYY-MM-DD)
+Posibles valores: Ej. "2024-03-20"
+Observaciones: Combinado con publishedAt permite calcular el tiempo
+               hasta trending. También útil para análisis temporal y
+               estacionalidad.
+
+Variable: tags
+Descripción: Lista de etiquetas (hashtags/keywords) asociadas al video,
+             separadas por "|".
+Tipo: Texto (lista delimitada)
+Posibles valores: Ej. "music|pop|new|2024|official"
+                  "[none]" si el video no tiene tags.
+Observaciones: Requiere parsing para separar tags individuales. Permite
+               análisis de frecuencia de tags y feature engineering
+               (número de tags, presencia de tags específicos).
+
+Variable: view_count
+Descripción: Número total de vistas acumuladas del video al momento
+             del registro diario.
+Tipo: Numérica (entero)
+Posibles valores: Desde miles hasta miles de millones
+Observaciones: Principal variable objetivo para regresión. Fuertemente
+               sesgada a la derecha — considerar transformación log.
+
+Variable: likes
+Descripción: Número de "Me gusta" acumulados al momento del registro.
+Tipo: Numérica (entero)
+Posibles valores: 0 en adelante (0 si ratings_disabled = True)
+Observaciones: Junto con view_count permite calcular el like_rate
+               (likes/views). Feature derivado muy útil.
+
+Variable: dislikes
+Descripción: Número de "No me gusta" acumulados al momento del registro.
+Tipo: Numérica (entero)
+Posibles valores: 0 en adelante
+Observaciones: YouTube ocultó los dislikes públicamente desde Nov 2021.
+               Esta variable puede no estar disponible o ser 0 en datos
+               recientes. Verificar según el rango temporal del dataset.
+
+Variable: comment_count
+Descripción: Número total de comentarios acumulados al momento del registro.
+Tipo: Numérica (entero)
+Posibles valores: 0 en adelante (0 si comments_disabled = True)
+Observaciones: 0 si comments_disabled es True. Permite calcular
+               comment_rate (comentarios/vistas).
+
+Variable: thumbnail_link
+Descripción: URL de la miniatura (thumbnail) del video en YouTube.
+Tipo: Texto (URL)
+Posibles valores: Ej. "https://i.ytimg.com/vi/{video_id}/default.jpg"
+Observaciones: Permite descargar imágenes para análisis de visión
+               computacional (proyecto avanzado). No necesario para
+               el modelo base de predicción textual.
+
+Variable: comments_disabled
+Descripción: Indica si los comentarios del video están desactivados.
+Tipo: Booleana
+Posibles valores: True / False
+Observaciones: Si es True, comment_count será 0. Útil como feature
+               categórico en el modelo.
+
+Variable: ratings_disabled
+Descripción: Indica si las calificaciones (likes/dislikes) están desactivadas.
+Tipo: Booleana
+Posibles valores: True / False
+Observaciones: Si es True, likes y dislikes serán 0. Útil como feature
+               categórico en el modelo.
+
+Variable: description
+Descripción: Descripción completa del video ingresada por el creador.
+Tipo: Texto (largo, texto libre)
+Posibles valores: Cadena de texto, puede estar vacía.
+Observaciones: Variable más rica para NLP avanzado: longitud,
+               presencia de links, emojis, llamados a la acción
+               (suscríbete, comenta). Feature engineering: longitud
+               de descripción, presencia de hashtags, URLs.
+
+================================================================
+VARIABLES DERIVADAS RECOMENDADAS (Feature Engineering)
+================================================================
+
+Variable derivada: days_to_trending
+Descripción: Días entre publishedAt y trending_date.
+Tipo: Numérica (entero)
+Observaciones: Un valor bajo indica viralización rápida. Feature
+               muy predictivo de engagement alto.
+
+Variable derivada: like_rate
+Descripción: likes / view_count. Ratio de engagement positivo.
+Tipo: Numérica (float)
+Observaciones: Normaliza likes por número de vistas.
+
+Variable derivada: comment_rate
+Descripción: comment_count / view_count. Ratio de conversación.
+Tipo: Numérica (float)
+Observaciones: Captura qué tan "controversial" o "generador de
+               conversación" es el video.
+
+Variable derivada: title_length
+Descripción: Número de caracteres del título.
+Tipo: Numérica (entero)
+Observaciones: Títulos más cortos tienden a ser más directos.
+
+Variable derivada: tag_count
+Descripción: Número de tags separados en el campo tags.
+Tipo: Numérica (entero)
+Observaciones: Indicador de SEO del creador.
+
+Variable derivada: publish_hour
+Descripción: Hora del día en que se publicó el video (0-23).
+Tipo: Numérica (entero)
+Observaciones: Extraída de publishedAt. La hora de publicación
+               influye en el alcance inicial.
+
+Variable derivada: publish_dayofweek
+Descripción: Día de la semana de publicación (0=Lunes, 6=Domingo).
+Tipo: Numérica (entero / categórica ordinal)
+Observaciones: Los fines de semana y algunos días tienen más
+               audiencia disponible.
+
+Variable derivada: category_name
+Descripción: Nombre legible de la categoría del video.
+Tipo: Categórica (texto)
+Observaciones: Obtenida cruzando categoryId con el JSON de cada región.
+
+================================================================
+NOTAS SOBRE CALIDAD Y USO DEL DATASET
+================================================================
+
+- Las variables documentadas directamente por la fuente son: video_id,
+  title, publishedAt, channelId, channelTitle, categoryId, trending_date,
+  tags, view_count, likes, dislikes, comment_count, thumbnail_link,
+  comments_disabled, ratings_disabled, description.
+
+- Las variables derivadas son propuestas propias para feature engineering
+  en el modelo predictivo.
+
+- La columna dislikes puede contener valores 0 o nulos en datos
+  posteriores a noviembre 2021 debido a cambios en la política de YouTube.
+
+- Se recomienda filtrar por una sola región inicialmente (ej. US o IN)
+  para reducir complejidad y luego expandir el análisis multiregional.
+
+- Para el modelo de clasificación binaria (¿llegará a trending?), se
+  necesitará complementar con datos de videos NO trending como clase
+  negativa. El dataset por sí solo solo tiene la clase positiva.
+
+================================================================
+FIN DEL DICCIONARIO
+================================================================
